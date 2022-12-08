@@ -1,0 +1,6 @@
+/__pycache__/
+/.vscode/
+/driver/*
+!/driver/*.c
+!/driver/driver_script
+!/driver/Makefile

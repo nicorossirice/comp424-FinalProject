@@ -1,0 +1,7 @@
+#!/bin/bash
+sudo modprobe -r gpiod_driver
+sudo make clean
+sudo make
+sudo cp gpiod_driver.ko /lib/modules/$(uname -r)/misc
+sudo depmod
+# sudo modprobe gpiod_driver
