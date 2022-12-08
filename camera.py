@@ -1,3 +1,14 @@
+'''
+
+ELEC 424 Final Project - Autonomous Lanekeeping RC Car
+Team YoungerWoods (ft. The NicoMobile)
+
+Used the following reference code: 
+https://www.instructables.com/Autonomous-Lane-Keeping-Car-Using-Raspberry-Pi-and/
+https://www.hackster.io/really-bad-idea/autonomous-path-following-car-6c4992
+
+'''
+
 import math
 import signal
 import time
@@ -181,6 +192,7 @@ time.sleep(2)
 
 
 ''' CONSTANTS (for PD algorithm) '''
+
 speed = 8 
 lastTime = 0
 lastError = 0
@@ -255,6 +267,7 @@ show_camera = False
 
 
 ''' SETTING P AND D VALUES '''
+
 kp = 0.2    # change for testing purposes
 kd = kp * 0.1
 
