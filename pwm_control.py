@@ -1,6 +1,8 @@
 import time
 
 class PWMControl:
+   
+    ''' initialization '''
     def __init__(self):
         self.jumped = False
         self.speed = open("/sys/module/gpiod_driver/parameters/rot_time", "r")
@@ -21,6 +23,7 @@ class PWMControl:
         with open('/dev/bone/pwm/1/b/enable', 'w') as filetowrite:
             filetowrite.write('1')
 
+    ''' gets the speed of the RC car '''
     def get_speed(self):
         self.speed.seek(0)
         cur_speed = float(self.speed.read())
@@ -35,13 +38,16 @@ class PWMControl:
     def percent_to_period(self, percent: float):
         return str(int(percent * 200000))
 
+    ''' set throttle value given PWM percent '''
     def set_throttle_direct(self, percent):
         self.cur_throttle = percent
         with open('/dev/bone/pwm/1/a/duty_cycle', 'w') as throttle:
             # print(self.percent_to_period(percent))
             throttle.write(self.percent_to_period(percent))
 
+    ''' set throttle value given rotational period for constant speed '''
     def set_throttle(self, rot_period: float):
+        # if vehicle was previously stopped
         if rot_period == 0:
             print("rot_period 0")
             self.jumped = False
@@ -49,6 +55,7 @@ class PWMControl:
             self.set_throttle_direct(7.9)
             return 7.9
 
+        # if vehicle was not previously stopped
         cur_rot_period = self.get_speed()
         print(cur_rot_period)
         diff = abs(cur_rot_period - rot_period)
@@ -68,6 +75,7 @@ class PWMControl:
         #     print(f"Manually increasing: {self.cur_throttle}")
         #     return
 
+        # Speed is changed based on throttle error  
         if diff < 1:
             pass
         elif rot_period > cur_rot_period:
@@ -79,6 +87,7 @@ class PWMControl:
             print(f"Increasing: {self.cur_throttle}")
             return self.cur_throttle
 
+    ''' detect throttle error '''
     def diff_to_delta(self, diff):
         if diff < 30:
             return -0.0005
@@ -89,11 +98,13 @@ class PWMControl:
         else:
             return 0.0003
 
+    ''' set steering '''
     def set_steering(self, percent: float):
         with open('/dev/bone/pwm/1/b/duty_cycle', 'w') as steering:
             steering.write(self.percent_to_period(percent))
         return percent
 
+    ''' shutdown '''
     def shutdown(self):
         print("Shutting down PWM...")   
         # Center steering and stop motor
@@ -112,6 +123,7 @@ class PWMControl:
         self.speed.close()
         # self.last_rot.close()
 
+# PWM testing
 if __name__ == "__main__":
     pwm = PWMControl()
     import signal, sys, select
