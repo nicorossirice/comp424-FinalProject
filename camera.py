@@ -3,6 +3,12 @@
 ELEC 424 Final Project - Autonomous Lanekeeping RC Car
 Team YoungerWoods (ft. The NicoMobile)
 
+GitHub Repo:
+https://github.com/nicorossirice/comp424-FinalProject/tree/main
+
+Hackster Webpage:
+https://www.hackster.io/team-youngerwoods/the-nicomobile-83caa9
+
 Used the following reference code: 
 https://www.instructables.com/Autonomous-Lane-Keeping-Car-Using-Raspberry-Pi-and/
 https://www.hackster.io/really-bad-idea/autonomous-path-following-car-6c4992
