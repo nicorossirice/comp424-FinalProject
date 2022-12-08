@@ -211,19 +211,19 @@ def check_for_stop_sign(frame):
     107.065
     163.78041666666667
     '''
-    center = frame[:, :, :]
-    center[:110, :, :] = 0
-    center[130:, :, :] = 0
-    center[:, :110, :] = 0
-    center[:, 230:, :] = 0
-    center = center[110:130, 110:230, :]
-    print(np.mean(center[:,:,0]))
-    print(np.mean(center[:,:,1]))
-    print(np.mean(center[:,:,2]))
+    # center = frame[:, :, :]
+    # center[:110, :, :] = 0
+    # center[130:, :, :] = 0
+    # center[:, :110, :] = 0
+    # center[:, 230:, :] = 0
+    # center = center[110:130, 110:230, :]
+    # print(np.mean(center[:,:,0]))
+    # print(np.mean(center[:,:,1]))
+    # print(np.mean(center[:,:,2]))
 
     # print(np.average(center[110:130, 110:230, :], axis=1))
 
-    cv2.imshow("center", center)
+    # cv2.imshow("center", center)
 
     print(frame.shape)
     # Filter out non red pixels and get count of number of red pixels

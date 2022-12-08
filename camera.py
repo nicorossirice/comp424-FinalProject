@@ -1,9 +1,9 @@
 import math
 import signal
-import sys
 import time
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 
 from pwm_control import PWMControl
@@ -172,7 +172,7 @@ video = cv2.VideoCapture(2)
 video.set(cv2.CAP_PROP_FRAME_WIDTH,320)
 video.set(cv2.CAP_PROP_FRAME_HEIGHT,240)
 
-time.sleep(1)
+time.sleep(2)
 
 
 speed = 8
@@ -188,14 +188,51 @@ lastError = 0
 def check_for_stop_sign(frame):
 
     # Range of red in HSV
-    lower_red = np.array([160,100,0], dtype="uint8")
-    upper_red = np.array([180,255,255], dtype="uint8")
-    
-    # Filter out non red pixels and get count of number of red pixels
-    mask = cv2.inRange(frame,lower_red, upper_red)
-    num_red_px = cv2.countNonZero(mask)
 
-    return num_red_px  < 500
+
+    # lower_red = np.array([160,100,0], dtype="uint8")
+    # upper_red = np.array([180,255,255], dtype="uint8")
+    left_lower_red = np.array([0,40,100], dtype="uint8")
+    left_upper_red = np.array([25,130,200], dtype="uint8")
+    right_lower_red = np.array([150, 40, 100], dtype="uint8")
+    right_upper_red = np.array([200, 130, 200], dtype="uint8")
+
+    left_lower_red = np.flip(left_lower_red)
+    left_upper_red = np.flip(left_upper_red)
+    right_lower_red = np.flip(right_lower_red)
+    right_upper_red = np.flip(right_upper_red)
+
+    left_mask = cv2.inRange(frame, left_lower_red, left_upper_red)
+    right_mask = cv2.inRange(frame, right_lower_red, right_upper_red)
+    mask = cv2.bitwise_or(left_mask, right_mask)
+    num_red_px = cv2.countNonZero(mask)
+    '''
+    125.98791666666666
+    107.065
+    163.78041666666667
+    '''
+    # center = frame[:, :, :]
+    # center[:110, :, :] = 0
+    # center[130:, :, :] = 0
+    # center[:, :110, :] = 0
+    # center[:, 230:, :] = 0
+    # center = center[110:130, 110:230, :]
+    # print(np.mean(center[:,:,0]))
+    # print(np.mean(center[:,:,1]))
+    # print(np.mean(center[:,:,2]))
+
+    # print(np.average(center[110:130, 110:230, :], axis=1))
+
+    # cv2.imshow("center", center)
+
+    # print(frame.shape)
+    # Filter out non red pixels and get count of number of red pixels
+    # mask = cv2.inRange(frame, lower_red, upper_red, axis=2)
+    # num_red_px = cv2.countNonZero(mask)
+    # cv2.imshow("Mask", mask)
+    # cv2.imshow("Mask", cv2.bitwise_and(frame, frame, mask=mask))
+
+    return num_red_px
 
 # Set up signal handler so ctrl+c triggers the handler
 # This means the shutdown code will actuall run
@@ -207,7 +244,7 @@ def stop(signum, stackframe):
 
 signal.signal(signal.SIGINT, stop)
 
-pwm.set_throttle_direct(8.35)
+pwm.set_throttle_direct(7.9)
 
 show_camera = False
 
@@ -215,9 +252,24 @@ show_camera = False
 kp = 0.2
 kd = kp * 0.1
 
+stop_timing = 0
+stop_state = 0
+
+error_data = []
+steering_pwm_data = []
+throttle_pwm_data = []
+
+proportional_resp_data = []
+derivative_resp_data = []
+
+
 while not done:
-    if not show_camera:
-        pwm.set_throttle(500)
+    if stop_state in {0, 2, 3}:
+        if not show_camera:
+            throttle_pwm_data.append(pwm.set_throttle(500))
+    elif stop_state in {1, 4}:
+        if not show_camera:
+            throttle_pwm_data.append(pwm.set_throttle(0))
     ret,frame = video.read()
     #frame = cv2.flip(frame,-1)
 
@@ -233,6 +285,24 @@ while not done:
         cv2.imshow("heading line",heading_image)
     
 
+    red_px = check_for_stop_sign(frame)
+    print(f"{red_px=}")
+    print(f"{stop_state=}")
+    if  stop_state == 0 and red_px > 1800:
+        print(f'Stopping! {stop_state}')
+        if not show_camera:
+            pwm.set_throttle(0)
+        stop_state += 1
+        stop_timing = time.time()
+    elif stop_state == 1 and time.time() - stop_timing > 2:
+        stop_state += 1
+        stop_timing = time.time()
+    elif stop_state == 2 and red_px < 600:
+        stop_state += 1
+        stop_timing = time.time()
+    elif stop_state == 3 and red_px > 3600:
+        stop_state += 1
+
     now = time.time()
     dt = now - lastTime
 
@@ -243,6 +313,10 @@ while not done:
     base_turn = 7.5
     proportional = kp * error
     derivative = kd * (error - lastError) / dt
+
+    error_data.append(error)
+    proportional_resp_data.append(proportional)
+    derivative_resp_data.append(derivative)
 
     # take values for graphs
     # p_vals.append(proportional)
@@ -258,7 +332,7 @@ while not done:
         turn_amt = 9
 
     # print(f"Turn amt: {turn_amt}")
-    pwm.set_steering(turn_amt)
+    steering_pwm_data.append(pwm.set_steering(turn_amt))
 
     lastError = error
 
@@ -303,3 +377,14 @@ while not done:
 
 video.release()
 pwm.shutdown()
+
+with open("data.py", 'w') as data:
+    data.write(f"{error_data=}")
+    data.write("\n")
+    data.write(f"{throttle_pwm_data=}")
+    data.write("\n")
+    data.write(f"{steering_pwm_data=}")
+    data.write("\n")
+    data.write(f"{proportional_resp_data=}")
+    data.write("\n")
+    data.write(f"{derivative_resp_data=}")

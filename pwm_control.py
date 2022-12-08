@@ -45,8 +45,9 @@ class PWMControl:
         if rot_period == 0:
             print("rot_period 0")
             self.jumped = False
-            self.set_throttle_direct(8)
-            return
+
+            self.set_throttle_direct(7.9)
+            return 7.9
 
         cur_rot_period = self.get_speed()
         print(cur_rot_period)
@@ -72,9 +73,11 @@ class PWMControl:
         elif rot_period > cur_rot_period:
             self.set_throttle_direct(self.cur_throttle - (jump + self.diff_to_delta(diff)))
             print(f"Decreasing: {self.cur_throttle}")
+            return self.cur_throttle
         elif rot_period < cur_rot_period:
             self.set_throttle_direct(self.cur_throttle + (jump + self.diff_to_delta(diff)))
             print(f"Increasing: {self.cur_throttle}")
+            return self.cur_throttle
 
     def diff_to_delta(self, diff):
         if diff < 30:
@@ -89,6 +92,7 @@ class PWMControl:
     def set_steering(self, percent: float):
         with open('/dev/bone/pwm/1/b/duty_cycle', 'w') as steering:
             steering.write(self.percent_to_period(percent))
+        return percent
 
     def shutdown(self):
         print("Shutting down PWM...")   
