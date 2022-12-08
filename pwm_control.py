@@ -5,12 +5,12 @@ class PWMControl:
         self.jumped = False
         self.speed = open("/sys/module/gpiod_driver/parameters/rot_time", "r")
         # self.last_rot = open("/sys/module/gpiod_driver/parameters/last_time", "r")
-        self.cur_throttle = 7.75
+        self.cur_throttle = 7.5
         # P9_14 - Speed/ESC (7.75%)
         with open('/dev/bone/pwm/1/a/period', 'w') as filetowrite:
             filetowrite.write('20000000')
         with open('/dev/bone/pwm/1/a/duty_cycle', 'w') as filetowrite:
-            filetowrite.write('1550000')
+            filetowrite.write('1500000')
         with open('/dev/bone/pwm/1/a/enable', 'w') as filetowrite:
             filetowrite.write('1')
         # P9_16 - Steering (7.5%)
@@ -43,6 +43,7 @@ class PWMControl:
 
     def set_throttle(self, rot_period: float):
         if rot_period == 0:
+            print("rot_period 0")
             self.jumped = False
             self.set_throttle_direct(8)
             return
@@ -76,24 +77,25 @@ class PWMControl:
             print(f"Increasing: {self.cur_throttle}")
 
     def diff_to_delta(self, diff):
-        if diff < 50:
-            return -0.0001
-        elif diff < 50:
+        if diff < 30:
+            return -0.0005
+        elif diff < 25:
             return 0.0001
-        elif diff < 80:
+        elif diff < 400:
             return 0.0001
         else:
-            return 0.003
+            return 0.0003
 
     def set_steering(self, percent: float):
         with open('/dev/bone/pwm/1/b/duty_cycle', 'w') as steering:
-            steering.write('1500000')
+            steering.write(self.percent_to_period(percent))
 
-    def shutdown(self):        
+    def shutdown(self):
+        print("Shutting down PWM...")   
         # Center steering and stop motor
-        self.set_throttle_direct(7.75)
+        self.set_throttle_direct(7.5)
         self.set_steering(7.5)
-
+        time.sleep(0.2)
         # Shut down throttle
         with open('/dev/bone/pwm/1/a/enable', 'w') as filetowrite:
             filetowrite.write('1')
@@ -109,6 +111,19 @@ class PWMControl:
 if __name__ == "__main__":
     pwm = PWMControl()
     import signal, sys, select
+
+    time.sleep(3)
+    # pwm.set_steering(9)
+    pwm.set_throttle_direct(8)
+
+    # print("9")
+    # pwm.set_steering(9)
+    # time.sleep(3)
+    # print("6")
+    # pwm.set_steering(6)
+    # time.sleep(3)
+    # print("7.5")
+    # pwm.set_steering(7.5)
 
     run = True
 

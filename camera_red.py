@@ -166,7 +166,7 @@ def get_steering_angle(frame, lane_lines):
     
     return steering_angle
 
-pwm = PWMControl()
+#pwm = PWMControl()
 
 video = cv2.VideoCapture(2)
 video.set(cv2.CAP_PROP_FRAME_WIDTH,320)
@@ -188,14 +188,51 @@ lastError = 0
 def check_for_stop_sign(frame):
 
     # Range of red in HSV
-    lower_red = np.array([160,100,0], dtype="uint8")
-    upper_red = np.array([180,255,255], dtype="uint8")
-    
-    # Filter out non red pixels and get count of number of red pixels
-    mask = cv2.inRange(frame,lower_red, upper_red)
-    num_red_px = cv2.countNonZero(mask)
 
-    return num_red_px  < 500
+
+    # lower_red = np.array([160,100,0], dtype="uint8")
+    # upper_red = np.array([180,255,255], dtype="uint8")
+    left_lower_red = np.array([0,40,100], dtype="uint8")
+    left_upper_red = np.array([25,130,200], dtype="uint8")
+    right_lower_red = np.array([150, 40, 100], dtype="uint8")
+    right_upper_red = np.array([200, 130, 200], dtype="uint8")
+
+    left_lower_red = np.flip(left_lower_red)
+    left_upper_red = np.flip(left_upper_red)
+    right_lower_red = np.flip(right_lower_red)
+    right_upper_red = np.flip(right_upper_red)
+
+    left_mask = cv2.inRange(frame, left_lower_red, left_upper_red)
+    right_mask = cv2.inRange(frame, right_lower_red, right_upper_red)
+    mask = cv2.bitwise_or(left_mask, right_mask)
+    num_red_px = cv2.countNonZero(mask)
+    '''
+    125.98791666666666
+    107.065
+    163.78041666666667
+    '''
+    center = frame[:, :, :]
+    center[:110, :, :] = 0
+    center[130:, :, :] = 0
+    center[:, :110, :] = 0
+    center[:, 230:, :] = 0
+    center = center[110:130, 110:230, :]
+    print(np.mean(center[:,:,0]))
+    print(np.mean(center[:,:,1]))
+    print(np.mean(center[:,:,2]))
+
+    # print(np.average(center[110:130, 110:230, :], axis=1))
+
+    cv2.imshow("center", center)
+
+    print(frame.shape)
+    # Filter out non red pixels and get count of number of red pixels
+    # mask = cv2.inRange(frame, lower_red, upper_red, axis=2)
+    # num_red_px = cv2.countNonZero(mask)
+    cv2.imshow("Mask", mask)
+    # cv2.imshow("Mask", cv2.bitwise_and(frame, frame, mask=mask))
+
+    return num_red_px
 
 # Set up signal handler so ctrl+c triggers the handler
 # This means the shutdown code will actuall run
@@ -207,7 +244,7 @@ def stop(signum, stackframe):
 
 signal.signal(signal.SIGINT, stop)
 
-pwm.set_throttle_direct(8.35)
+#pwm.set_throttle_direct(8.35)
 
 show_camera = False
 
@@ -216,12 +253,11 @@ kp = 0.2
 kd = kp * 0.1
 
 while not done:
-    if not show_camera:
-        pwm.set_throttle(500)
+    #if not show_camera:
+     #   pwm.set_throttle(500)
     ret,frame = video.read()
-    #frame = cv2.flip(frame,-1)
-
-    # cv2.imshow("original",frame)
+    frame = cv2.flip(frame,-1)
+    cv2.imshow("original",frame)
     edges = detect_edges(frame)
     roi = region_of_interest(edges)
     line_segments = detect_line_segments(roi)
@@ -229,72 +265,20 @@ while not done:
     lane_lines_image = display_lines(frame,lane_lines)
     steering_angle = get_steering_angle(frame, lane_lines)
     heading_image = display_heading_line(lane_lines_image,steering_angle)
-    if show_camera:
-        cv2.imshow("heading line",heading_image)
+      #if show_camera:
+    cv2.imshow("heading line",heading_image)
     
 
-    now = time.time()
-    dt = now - lastTime
 
-    deviation = steering_angle - 90
+    #pwm.set_steering(turn_amt)
 
-    # PD Code
-    error = -deviation
-    base_turn = 7.5
-    proportional = kp * error
-    derivative = kd * (error - lastError) / dt
-
-    # take values for graphs
-    # p_vals.append(proportional)
-    # d_vals.append(derivative)
-    # err_vals.append(error)
-
-    # determine actual turn to do
-    turn_amt = base_turn + proportional + derivative
-
-    if turn_amt < 6:
-        turn_amt = 6
-    elif turn_amt > 9:
-        turn_amt = 9
-
-    # print(f"Turn amt: {turn_amt}")
-    pwm.set_steering(turn_amt)
-
-    lastError = error
-
-    # # error = abs(deviation)
+   # lastError = error
 
 
-    # print("Stop dected is: ",check_for_stop_sign(frame))
-    # if deviation < 5 and deviation > -5:
-    #     deviation = 0
-    #     error = 0
-    #     #this state should never happen
+    print("red pixels counted: ",check_for_stop_sign(frame))
 
 
-
-    # elif deviation > 5: # right turn
-    #     pwm.set_steering(6.75)
-    #     print("turn right")
-    #     #put code to turn right 
-
-
-    # elif deviation < -5: #left turn
-    #     pwm.set_steering(8.25)
-    #     print("turn left")
-    #      #put code to turn left 
-
-
-    # derivative = kd * (error - lastError) / dt
-    # proportional = kp * error
-    # PD = int(speed + derivative + proportional)
-    # spd = abs(PD)
-
-
-    # if spd > 25:
-    #     spd = 25
-
-    lastTime = time.time()
+  #  lastTime = time.time()
 
 
     key = cv2.waitKey(1)
@@ -302,4 +286,4 @@ while not done:
         break
 
 video.release()
-pwm.shutdown()
+#pwm.shutdown()
